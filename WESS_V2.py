@@ -60,17 +60,17 @@ class WESS_Encoder(nn.Module):
         self.position_embedding = nn.Embedding.from_pretrained(
             get_sinusoid_encoding_table(self.vocab_max_size, self.embedding_size), freeze=True)
 
-        self.pre_GRU = nn.GRU(input_size=self.embedding_size,
-                              hidden_size=self.GRU_hidden,
-                              num_layers=self.GRU_num_layers,
-                              batch_first=self.GRU_batch_first,
-                              dropout=self.dropout,
-                              bidirectional=self.GRU_bidirectional)
+        # self.pre_GRU = nn.GRU(input_size=self.embedding_size,
+        #                       hidden_size=self.GRU_hidden,
+        #                       num_layers=self.GRU_num_layers,
+        #                       batch_first=self.GRU_batch_first,
+        #                       dropout=self.dropout,
+        #                       bidirectional=self.GRU_bidirectional)
 
-        self.bi_Transformer = BERT(hidden=self.bert_hidden,
-                                   n_layers=self.bert_n_layers,
-                                   attn_heads=self.bert_attn_heads,
-                                   dropout=self.dropout)
+        # self.bi_Transformer = BERT(hidden=self.bert_hidden,
+        #                            n_layers=self.bert_n_layers,
+        #                            attn_heads=self.bert_attn_heads,
+        #                            dropout=self.dropout)
 
         self.bert_post_net = LinearNet_TwoLayer(
             self.embedding_size, self.bert_postnet_hidden, self.bert_postnet_output)
@@ -216,6 +216,21 @@ class WESS_Encoder(nn.Module):
 
         return bert_transformer_input
 
+    def process_bert_embedding(self, bert_embeddings):
+        len_list = list()
+        for batch in bert_embeddings:
+            # print(batch.size(0))
+            len_list.append(batch.size(0))
+
+        max_len = max(len_list)
+
+        for index, batch in enumerate(bert_embeddings):
+            bert_embeddings[index] = torch.cat(
+                (batch, torch.zeros(max_len-batch.size(0), batch.size(1)).to(device)), 0)
+
+        bert_embeddings = torch.stack(bert_embeddings)
+        return bert_embeddings
+
     def forward(self, x, bert_embeddings, gate_for_words):
         """
         :param: x: (batch, length)
@@ -226,52 +241,55 @@ class WESS_Encoder(nn.Module):
         # Embedding
         x = self.pre_embedding(x)
 
-        # P_GRU
-        words_batch = list()
-        for index, batch in enumerate(x):
-            words_batch.append(self.cal_P_GRU(batch, gate_for_words[index]))
+        # # P_GRU
+        # words_batch = list()
+        # for index, batch in enumerate(x):
+        #     words_batch.append(self.cal_P_GRU(batch, gate_for_words[index]))
 
-        # words_batch = self.pad_by_word(words_batch)
-        # bert_embeddings = self.pad_by_word(bert_embeddings)
-        # words_batch, bert_embeddings = self.pad_all(
-        #     words_batch, bert_embeddings)
-        # # print(words_batch.size())
-        # # print(bert_embeddings.size())
-        # bert_input = words_batch + bert_embeddings
+        # # words_batch = self.pad_by_word(words_batch)
+        # # bert_embeddings = self.pad_by_word(bert_embeddings)
+        # # words_batch, bert_embeddings = self.pad_all(
+        # #     words_batch, bert_embeddings)
+        # # # print(words_batch.size())
+        # # # print(bert_embeddings.size())
+        # # bert_input = words_batch + bert_embeddings
 
-        # # Add Position Embedding
-        # pos_input = torch.stack([torch.Tensor([i for i in range(
-        #     bert_input.size(1))]).long() for i in range(bert_input.size(0))]).to(device)
-        # pos_embedding = self.position_embedding(pos_input)
-        # bert_input = bert_input + pos_embedding
+        # # # Add Position Embedding
+        # # pos_input = torch.stack([torch.Tensor([i for i in range(
+        # #     bert_input.size(1))]).long() for i in range(bert_input.size(0))]).to(device)
+        # # pos_embedding = self.position_embedding(pos_input)
+        # # bert_input = bert_input + pos_embedding
 
-        # encoder_output = self.bert_encoder(bert_input)
+        # # encoder_output = self.bert_encoder(bert_input)
 
-        # New
-        if not (len(words_batch) == len(bert_embeddings)):
-            raise ValueError(
-                "the length of bert embeddings is not equal to the length of GRU embeddings.")
+        # # New
+        # if not (len(words_batch) == len(bert_embeddings)):
+        #     raise ValueError(
+        #         "the length of bert embeddings is not equal to the length of GRU embeddings.")
 
-        bert_transformer_input = list()
+        # bert_transformer_input = list()
 
-        for batch_index in range(len(words_batch)):
-            add_bert_GRU = self.pad_bert_embedding_and_GRU_embedding(
-                bert_embeddings[batch_index], words_batch[batch_index])
-            bert_transformer_input.append(add_bert_GRU)
+        # for batch_index in range(len(words_batch)):
+        #     add_bert_GRU = self.pad_bert_embedding_and_GRU_embedding(
+        #         bert_embeddings[batch_index], words_batch[batch_index])
+        #     bert_transformer_input.append(add_bert_GRU)
 
-        bert_transformer_input = self.pad_all(bert_transformer_input)
+        # bert_transformer_input = self.pad_all(bert_transformer_input)
 
-        pos_input_one_batch = torch.Tensor(
-            [i for i in range(bert_transformer_input.size(1))]).long()
-        pos_input = torch.stack([pos_input_one_batch for _ in range(
-            bert_transformer_input.size(0))]).to(device)
-        position_embedding = self.position_embedding(pos_input)
+        # pos_input_one_batch = torch.Tensor(
+        #     [i for i in range(bert_transformer_input.size(1))]).long()
+        # pos_input = torch.stack([pos_input_one_batch for _ in range(
+        #     bert_transformer_input.size(0))]).to(device)
+        # position_embedding = self.position_embedding(pos_input)
 
-        bert_transformer_input = bert_transformer_input + position_embedding
+        # bert_transformer_input = bert_transformer_input + position_embedding
 
-        bert_transformer_output = self.bi_Transformer(bert_transformer_input)
+        # bert_transformer_output = self.bi_Transformer(bert_transformer_input)
 
-        encoder_output_word = self.bert_post_net(bert_transformer_output)
+        # encoder_output_word = self.bert_post_net(bert_transformer_output)
+
+        encoder_output_word = self.process_bert_embedding(bert_embeddings)
+        encoder_output_word = self.bert_post_net(encoder_output_word)
 
         encoder_output_alpha = self.EmbeddingNet(x)
 
