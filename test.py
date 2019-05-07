@@ -4,7 +4,7 @@ from pytorch_pretrained_bert import BertTokenizer, BertModel, BertForMaskedLM
 import os
 import numpy as np
 
-from WESS_V2 import WESS
+from WESS_V3 import WESS
 from layers import get_bert_embedding
 from data_utils import gen_text_sep
 import hparams
