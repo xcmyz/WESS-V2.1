@@ -3,7 +3,7 @@ from torch.utils.data import Dataset, DataLoader
 from text import text_to_sequence, symbols
 from layers import get_bert_embedding
 import hparams
-from WESS_V2 import WESS_Encoder, WESS_Decoder, WESS
+from WESS_V3 import WESS_Encoder, WESS_Decoder, WESS
 
 import numpy as np
 from pytorch_pretrained_bert import BertTokenizer, BertModel, BertForMaskedLM
