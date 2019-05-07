@@ -8,7 +8,7 @@ import argparse
 import os
 import time
 
-from WESS_V2 import WESS
+from WESS_V3 import WESS
 from loss import WESSLoss
 from data_utils import WESSDataLoader, collate_fn, DataLoader
 import hparams as hp
@@ -97,6 +97,19 @@ def main(args):
             # print(gate_loss)
             loss_list.append(total_loss.item())
 
+            t_l = total_loss.item()
+            m_l = mel_loss.item()
+            g_l = gate_loss.item()
+
+            with open("total_loss.txt", "a") as f_total_loss:
+                f_total_loss.write(str(t_l)+"\n")
+
+            with open("mel_loss.txt", "a") as f_mel_loss:
+                f_mel_loss.write(str(m_l)+"\n")
+
+            with open("gate_loss.txt", "a") as f_gate_loss:
+                f_gate_loss.write(str(g_l)+"\n")
+
             # Backward
             total_loss.backward()
 
@@ -140,19 +153,19 @@ def main(args):
 
 
 def adjust_learning_rate(optimizer, step):
-    if step == 100000:
+    if step == 5000:
         # if step == 20:
         # print("update")
         for param_group in optimizer.param_groups:
-            param_group['lr'] = 0.0007
-
-    elif step == 200000:
-        for param_group in optimizer.param_groups:
             param_group['lr'] = 0.0005
 
-    elif step == 300000:
+    elif step == 10000:
         for param_group in optimizer.param_groups:
             param_group['lr'] = 0.0003
+
+    elif step == 50000:
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = 0.0001
 
     return optimizer
 
